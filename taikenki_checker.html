@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>体験記チェッカー</title>
+<style>
+  :root{
+    --paper:#f6f4ee;
+    --ink:#20232b;
+    --ink-soft:#5a5f6b;
+    --line:#d8d4c8;
+    --red:#c0392b;
+    --red-bg:#fbeceb;
+    --green:#2f6b4f;
+    --green-bg:#eaf3ee;
+    --amber:#8a6d1c;
+    --amber-bg:#faf3e0;
+    --panel:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+    line-height:1.7;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px;}
+
+  header{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    border-bottom:3px solid var(--ink);
+    padding-bottom:14px;
+    margin-bottom:20px;
+  }
+  header .mark{
+    width:34px;height:34px;flex:none;
+    border:2px solid var(--red);
+    border-radius:50%;
+    position:relative;
+  }
+  header .mark::after{
+    content:"";position:absolute;left:7px;top:16px;width:20px;height:2.5px;
+    background:var(--red);transform:rotate(-18deg);border-radius:2px;
+  }
+  header .mark::before{
+    content:"";position:absolute;left:16px;top:8px;width:2.5px;height:16px;
+    background:var(--red);transform:rotate(24deg);border-radius:2px;
+  }
+  h1{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;font-size:26px;margin:0;letter-spacing:.04em;}
+  header .sub{color:var(--ink-soft);font-size:13px;}
+
+  .tabs{display:flex;gap:4px;margin-bottom:18px;}
+  .tab-btn{
+    padding:10px 22px;
+    border:1px solid var(--line);
+    border-bottom:none;
+    background:#eeece3;
+    color:var(--ink-soft);
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    border-radius:4px 4px 0 0;
+  }
+  .tab-btn.active{background:var(--panel);color:var(--ink);border-bottom:1px solid var(--panel);position:relative;top:1px;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  .grid{display:grid;grid-template-columns:280px 1fr;gap:22px;}
+  @media (max-width:860px){.grid{grid-template-columns:1fr;}}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:0 4px 4px 4px;padding:18px 18px 20px;}
+  .panel h2{font-size:13px;letter-spacing:.08em;color:var(--ink-soft);margin:0 0 14px;text-transform:uppercase;border-bottom:1px solid var(--line);padding-bottom:8px;}
+  label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px;}
+  label:first-of-type{margin-top:0;}
+  input[type=password],input[type=text],select{
+    width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:3px;font-size:14px;background:#fff;font-family:inherit;
+  }
+  .radio-row{display:flex;flex-direction:column;gap:6px;font-size:14px;}
+  .radio-row label{display:flex;align-items:center;gap:8px;font-weight:400;margin:0;}
+  .hint{font-size:11.5px;color:var(--ink-soft);margin-top:6px;}
+  .warn{font-size:12px;background:var(--red-bg);color:var(--red);border:1px solid #eccac6;border-radius:3px;padding:10px 12px;margin-top:16px;}
+  .note{font-size:12px;background:var(--amber-bg);color:var(--amber);border:1px solid #ecdca6;border-radius:3px;padding:10px 12px;margin-top:16px;}
+
+  textarea{width:100%;min-height:220px;padding:14px;border:1px solid var(--line);border-radius:3px;font-size:15px;line-height:1.9;font-family:inherit;resize:vertical;}
+  .countbar{display:flex;justify-content:flex-end;font-size:12px;color:var(--ink-soft);margin-top:4px;}
+  .runbar{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap;}
+  button.run{background:var(--ink);color:#fff;border:none;padding:11px 22px;font-size:14px;font-weight:600;border-radius:3px;cursor:pointer;letter-spacing:.03em;}
+  button.run.secondary{background:#fff;color:var(--ink);border:1px solid var(--line);}
+  button.run:disabled{background:#9a9da5;opacity:.55;cursor:not-allowed;}
+  .status{font-size:13px;color:var(--ink-soft);}
+
+  .result-block{margin-top:26px;}
+  .result-block h3{font-size:14px;margin:0 0 10px;padding-left:10px;border-left:4px solid var(--ink);}
+  .issue{border:1px solid var(--line);border-left:4px solid var(--red);border-radius:3px;padding:12px 14px;margin-bottom:10px;background:#fff;}
+  .issue.warn-type{border-left-color:var(--amber);}
+  .issue .cat{display:inline-block;font-size:11px;color:var(--red);background:var(--red-bg);border-radius:20px;padding:2px 10px;margin-bottom:8px;}
+  .issue.warn-type .cat{color:var(--amber);background:var(--amber-bg);}
+  .issue .q{font-size:12px;color:var(--ink-soft);margin-bottom:4px;}
+  .issue .orig{text-decoration:line-through;text-decoration-color:var(--red);color:#7a7d84;font-size:14.5px;}
+  .issue .arrow{color:var(--ink-soft);margin:0 8px;}
+  .issue .fix{color:var(--green);font-weight:600;font-size:14.5px;}
+  .issue .reason{margin-top:6px;font-size:13px;color:var(--ink-soft);}
+  .title-card{border:1px solid var(--line);border-left:4px solid var(--green);border-radius:3px;padding:12px 14px;margin-bottom:10px;background:#fff;font-size:14.5px;}
+  .title-card .rank{font-size:11px;color:var(--green);background:var(--green-bg);border-radius:20px;padding:2px 10px;margin-right:10px;}
+  .empty-ok{color:var(--green);font-size:14px;padding:10px 0;}
+  .raw-error{background:var(--red-bg);border:1px solid #eccac6;color:var(--red);padding:12px;border-radius:3px;font-size:13px;white-space:pre-wrap;}
+
+  table.parsed{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px;}
+  table.parsed th,table.parsed td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top;}
+  table.parsed th{background:#eeece3;font-weight:600;}
+  table.parsed td.blank{color:#b6b9c0;font-style:italic;}
+  .parse-count{font-size:13px;color:var(--ink-soft);margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="mark"></div>
+    <div>
+      <h1>体験記チェッカー</h1>
+      <div class="sub">一次チェック支援ツール（試作） ／ アンケート・本文を分けて校正</div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="survey">アンケートチェック</button>
+    <button class="tab-btn" data-tab="text">本文チェック</button>
+  </div>
+
+  <!-- ===================== アンケートタブ ===================== -->
+  <div class="tab-panel active" id="tab-survey">
+    <div class="grid">
+      <div class="panel">
+        <h2>設定</h2>
+        <label for="apiKey1">Gemini APIキー</label>
+        <input type="password" id="apiKey1" placeholder="AIza...">
+        <div class="hint">2つのタブでAPIキーは共通です。このページを閉じると消えます（保存されません）。</div>
+
+        <label for="model1">モデル</label>
+        <select id="model1">
+          <option value="gemini-3.6-flash" selected>gemini-3.6-flash（標準・推奨）</option>
+          <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite（高速・大量処理向け）</option>
+          <option value="gemini-3.1-pro">gemini-3.1-pro（高精度・長文脈・低レート）</option>
+        </select>
+        <div class="hint">404エラーが出た場合はエラー本文に表示される推奨モデル名にvalue値を書き換えてください。</div>
+
+        <div class="note">
+          「掲載する」はコピペした時点でON/OFFの区別がつきません（チェックボックスの見た目は文字として残らないため）。このツールは「掲載する」を項目の区切りとしてのみ使い、実際にチェックを外すかどうかの最終操作は管理画面で行ってください。
+        </div>
+        <div class="warn">
+          生徒名・高校名などが含まれる場合、無料枠のデータはGoogle側のモデル改善に利用される場合があります。個人が特定できる情報は伏せてから貼り付けることを推奨します。
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>アンケート結果を貼り付け</h2>
+        <div class="hint" style="margin-bottom:8px;">管理画面の「アンケート結果」欄をそのままコピーして貼り付けてください（見出し行「アンケート結果」は自動的に無視されます）。</div>
+        <textarea id="surveyInput" placeholder="アンケート結果&#10;入学学年&#10;高1&#10;掲載する&#10;..."></textarea>
+
+        <div class="runbar">
+          <button class="run secondary" id="parseBtn">① 項目に分割してプレビュー</button>
+          <button class="run" id="surveyRunBtn" disabled>② AIでチェック実行</button>
+          <span class="status" id="surveyStatus"></span>
+        </div>
+
+        <div id="surveyParsePreview"></div>
+        <div id="surveyResults"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 本文タブ ===================== -->
+  <div class="tab-panel" id="tab-text">
+    <div class="grid">
+      <div class="panel">
+        <h2>設定</h2>
+        <label for="apiKey2">Gemini APIキー</label>
+        <input type="password" id="apiKey2" placeholder="AIza...">
+        <div class="hint">2つのタブでAPIキーは共通です。</div>
+
+        <label for="model2">モデル</label>
+        <select id="model2">
+          <option value="gemini-3.6-flash" selected>gemini-3.6-flash（標準・推奨）</option>
+          <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite（高速・大量処理向け）</option>
+          <option value="gemini-3.1-pro">gemini-3.1-pro（高精度・長文脈・低レート）</option>
+        </select>
+
+        <label>チェック内容</label>
+        <div class="radio-row">
+          <label><input type="radio" name="mode" value="proof" checked> 本文校正チェック</label>
+          <label><input type="radio" name="mode" value="title"> タイトル案の生成</label>
+        </div>
+
+        <div class="warn">
+          生徒名等を含む場合は無料枠へ送信する前に伏せ字にすることを推奨します。
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>本文入力</h2>
+        <textarea id="inputText" placeholder="体験記本文を貼り付けてください"></textarea>
+        <div class="countbar" id="charCount">0文字</div>
+        <div class="runbar">
+          <button class="run" id="runBtn">チェック実行</button>
+          <span class="status" id="statusText"></span>
+        </div>
+        <div id="results"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============ タブ切り替え ============ */
+document.querySelectorAll(".tab-btn").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-"+btn.dataset.tab).classList.add("active");
+  });
+});
+
+/* ============ 共通ルール ============ */
+const RULES = {
+  ngTeachers: [
+    "福崎伍郎","山中博","横山雅彦","太庸吉","森田鉄也","西きょうじ",
+    "鹿野俊之","熊代淳",
+    "宗慶二","吉野敬介","河本敏浩","樋口裕一","神崎史彦","板野博行","出口汪",
+    "高橋法彦","山川喜輝",
+    "齊藤整","野島博之","佐野雅彦","高橋和明"
+  ],
+  contentNamePairs: [
+    ["高速基礎マスター／高マス","高速マスター基礎力養成講座"],
+    ["映像授業／動画での授業／オンライン授業","映像による授業"],
+    ["センター模試","共通テスト本番レベル模試"],
+    ["過去問講座／センター対策","過去問演習講座大学入学共通テスト対策"],
+    ["共通テスト試験同日模試","共通テスト同日体験受験"],
+    ["志望校対策・志望校別単元ジャンル演習講座（連続表現）","志望校別単元ジャンル演習講座"],
+    ["大門別演習","大問別演習"],
+    ["英単語1800","共通テスト対応英単語1800"],
+    ["修了判定テスト／修判","講座修了判定テスト"],
+    ["青山・立教大対策長文読解","青山・立教大対策英語長文読解"],
+    ["難関大本番レベル記述模試","早慶上理・難関国公立大模試"],
+    ["有名大本番レベル記述模試","全国有名国公私大模試"],
+    ["千問テスト／1000題テスト","千題テスト"],
+    ["共通テストの過去問","過去問演習講座大学入学共通テスト対策"],
+    ["大学入学共通テスト対策 ○○（コンテンツ名なし表記）","過去問演習講座大学入学共通テスト対策 ○○"]
+  ],
+  wordPairs: [
+    ["入塾","入学"],["塾／校舎","東進"],["GM／グルミ／グループ・ミーティング","チームミーティング"],
+    ["チューター／担任助手（単体呼称として不適切な場合）","担任助手の方"],["担任／社員／校舎長","担任の先生"],
+    ["ＨＲ","ホームルーム"],["一人称／自分","（男）僕は／（女）私は"],["赤本／青チャート","本または過去問"],
+    ["MARCH","明青立法中"],["園田先生","苑田先生"],["山口先生","やまぐち先生"],
+    ["モチベ","モチベーション"],["共テ","共通テスト"],["冬季","冬期"],["自分は～","僕は～ or 私は～"],
+    ["一番","1番"],["返却が早い","返却が速い"]
+  ],
+  deleteItems: [
+    "第一志望校不合格の記述（本文全体に及ぶ場合は処理対象外の疑いあり、指摘のみ）",
+    "合格した大学より上位の大学向け講座・模試を勧めている（不合格を疑わせる内容）",
+    "本人の合格実績より明らかにハイレベルな講座・模試の推奨",
+    "東進模試が共通テストより難しいという趣旨の記述",
+    "高校の批判と受け取れる内容",
+    "競合他社の名称・商品（例外：英進館、田中学習会、英検は削除不要）",
+    "東進への要望・不満",
+    "授業のネタバレ",
+    "受験勉強と明らかに関係ない内容",
+    "担任・担任助手・友人の固有名詞",
+    "入学理由が「親に言われて」など自主性のない記述",
+    "高2の3月を高3の3月のように学年と時期を誤って記載している箇所",
+    "入学大学より明らかにレベルの高い模試・講座への言及",
+    "同一コンテンツについて別の設問で重複回答している場合の重複分"
+  ],
+  styleRules: [
+    "一人称は男子なら「僕」、女子なら「私」に統一する",
+    "誤字脱字（句読点の「，」など不適切な記号も含む）を修正する",
+    "段落は適度に分け、段落間は一行空ける。字下げはしない",
+    "偉そうな言い切り口調は「です・ます」調に直す",
+    "語尾は「です・ます」調か「だ・である」調のどちらかに統一する",
+    "アンケート本文「おすすめする理由」の文末（〜からをつけるか否か）は統一する",
+    "略称は使わない（例：共テ→共通テスト）",
+    "数字は一桁のときは全角、二桁以上は半角にする（自由記述の文章にのみ適用。年齢や活動日数など単独の数値管理項目には適用しない）",
+    "漢数字は算用数字に統一する（見づらいため）",
+    "ら抜き言葉など日本語として誤った表現は修正する"
+  ],
+  titleRules: {
+    priority: [
+      "最優先：1・2年生の頃に有効なことができている内容",
+      "ビフォーアフターが分かるもの（例：具体的な点数、判定の変化）",
+      "人間的な成長（例：受験を通して〜）",
+      "東進のコンテンツを推すもの",
+      "高校生のためになるような情報（例：やっておいてよかったこと、試験前のルーティーンなど）",
+      "その他文章でよさそうなところ（例：名言っぽいもの、将来の目標など）"
+    ],
+    format: "本人の文章から抜き出す。そのまま抜き出すと長い場合は、内容が一致していれば語尾など細部の調整はOK（創作は禁止）。文字数は20字以内が理想、長くても40字以内に収める。"
+  },
+  surveyRules: [
+    "「なし」「参加していない」「NO」「特になし」など掲載する意味のない回答は削除対象とする",
+    "役職は 部長（主将・キャプテン）・副部長・マネージャー・会計係・ポジション名・パートリーダー等は掲載可、部員・平部員・補欠・ベンチ等は削除対象",
+    "引退時期が2年12月より前（早期引退）の場合は削除対象",
+    "週の平均活動日数が2日以下の場合は削除対象",
+    "「東進を知ったきっかけ」に数字だけが残っている場合は削除対象（本来は選択式で、自由記述欄に数値コードが紛れ込んでいる）",
+    "「その他を選んだ場合はこちらに記入して下さい」の欄に記入が残っている場合、選択式の内容と重複していないか確認し、不要なら削除対象",
+    "高2の3月と高3の3月など、学年と時期の対応が矛盾している場合は指摘する",
+    "入学した大学よりも明らかにレベルの高い模試・講座への言及は削除対象",
+    "同じ主旨の設問（例：複数回登場する「東進のおすすめは?」等）で同一コンテンツ名が重複している場合、いずれか1つに絞ることを提案する",
+    "入学理由等に「親に言われて」のような自主性のない記述がある場合は削除対象",
+    "ら抜き言葉など日本語として誤った表現は修正する",
+    "自由記述の文中の一人称は「自分」ではなく「僕」または「私」に統一する",
+    "略称（共テ、モチベ、冬季 等）は正式表記に直す（共テ→共通テスト、モチベ→モチベーション、冬季→冬期）",
+    "漢数字の数字表現（例：一番）は算用数字（1番）に直す",
+    "コンテンツ名・講師名の表記ゆれは本文チェックと同じ辞書でチェックする"
+  ]
+};
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));
+}
+function extractJson(raw){
+  let s = raw.trim();
+  s = s.replace(/^```json/i,"").replace(/^```/,"").replace(/```$/,"").trim();
+  const start = s.indexOf("{");
+  const end = s.lastIndexOf("}");
+  if(start===-1||end===-1) throw new Error("JSON部分が見つかりませんでした。モデルの応答:\n"+raw.slice(0,500));
+  return JSON.parse(s.slice(start,end+1));
+}
+async function callGemini(apiKey, model, prompt){
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{
+    method:"POST",
+    headers:{ "Content-Type":"application/json", "x-goog-api-key": apiKey },
+    body: JSON.stringify({
+      contents:[{parts:[{text: prompt}]}],
+      generationConfig:{ responseMimeType:"application/json" }
+    })
+  });
+  if(!res.ok){
+    const errText = await res.text();
+    throw new Error(`APIエラー（${res.status}）: ${errText.slice(0,400)}\n\n※404の場合はモデル名が廃止されている可能性があります。エラー本文中の推奨モデル名に「モデル」欄のvalue値を書き換えてください。`);
+  }
+  const json = await res.json();
+  const raw = json?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("") || "";
+  if(!raw) throw new Error("モデルから応答テキストを取得できませんでした。");
+  return extractJson(raw);
+}
+
+/* ============ 本文チェックタブ ============ */
+const inputText = document.getElementById("inputText");
+const charCount = document.getElementById("charCount");
+inputText.addEventListener("input", ()=>{
+  charCount.textContent = inputText.value.length + "文字";
+});
+
+function buildProofPrompt(text){
+  return `あなたは大学受験合格体験記サイトの一次チェック担当者です。以下のルールに基づき、入力された本文の問題点を指摘してください。
+
+# ルール1：NGの講師名（本文に含まれていたら必ず指摘し、削除を提案する）
+${RULES.ngTeachers.join("、")}
+
+# ルール2：コンテンツ名の表記統一（誤り→正しい表記）
+${RULES.contentNamePairs.map(p=>`${p[0]} → ${p[1]}`).join("\n")}
+
+# ルール3：用語の言い換え（誤り→正しい表記。ただし「GMARCH」はそのままでよい）
+${RULES.wordPairs.map(p=>`${p[0]} → ${p[1]}`).join("\n")}
+
+# ルール4：削除すべき内容
+${RULES.deleteItems.map(s=>"・"+s).join("\n")}
+
+# ルール5：文体・表記ルール
+${RULES.styleRules.map(s=>"・"+s).join("\n")}
+
+# 入力本文
+"""
+${text}
+"""
+
+# 出力形式（重要）
+- 必ずJSONのみを出力すること。前置き、説明文、コードブロックの記号（\`\`\`）は一切付けない。
+- 問題が見つからない場合は issues を空配列にする。確信が持てない指摘は無理に作らない。
+- スキーマ：
+{"issues":[{"category":"講師名 | コンテンツ名 | 用語 | 削除項目 | 文体表記 | 誤字脱字","original":"該当箇所の原文抜粋","suggested":"修正案（削除の場合は空文字でよい）","reason":"指摘理由の説明（1文）"}]}`;
+}
+function buildTitlePrompt(text){
+  return `あなたは大学受験合格体験記サイトのタイトル付け担当者です。以下のルールに基づき、入力された本文からタイトル案を5つ作成してください。
+
+# タイトル作成ルール
+${RULES.titleRules.format}
+
+# 優先順位（上から優先。内容が複数の優先項目にまたがる場合は最も優先度が高いものを基準にする）
+${RULES.titleRules.priority.map((s,i)=>(i+1)+". "+s).join("\n")}
+
+# 入力本文
+"""
+${text}
+"""
+
+# 出力形式（重要）
+- 必ずJSONのみを出力すること。前置き、説明文、コードブロックの記号は一切付けない。
+- スキーマ：
+{"titles":[{"text":"タイトル案","basis":"本文中のどの部分を根拠にしたか","priorityMatched":"該当する優先項目の要約"}]}`;
+}
+function renderProofResults(data){
+  const box = document.getElementById("results");
+  const issues = Array.isArray(data.issues) ? data.issues : [];
+  if(issues.length===0){
+    box.innerHTML = `<div class="result-block"><h3>結果</h3><div class="empty-ok">ルールに明確に該当する問題は見つかりませんでした。目視での最終確認は必ず行ってください。</div></div>`;
+    return;
+  }
+  const rows = issues.map(it=>{
+    const fix = it.suggested && it.suggested.trim().length>0
+      ? `<span class="arrow">→</span><span class="fix">${escapeHtml(it.suggested)}</span>`
+      : `<span class="arrow">→</span><span class="fix">削除を検討</span>`;
+    return `<div class="issue">
+      <span class="cat">${escapeHtml(it.category||"指摘")}</span>
+      <div><span class="orig">${escapeHtml(it.original||"")}</span>${fix}</div>
+      <div class="reason">${escapeHtml(it.reason||"")}</div>
+    </div>`;
+  }).join("");
+  box.innerHTML = `<div class="result-block"><h3>指摘事項（${issues.length}件）</h3>${rows}</div>`;
+}
+function renderTitleResults(data){
+  const box = document.getElementById("results");
+  const titles = Array.isArray(data.titles) ? data.titles : [];
+  if(titles.length===0){
+    box.innerHTML = `<div class="result-block"><h3>結果</h3><div class="empty-ok">タイトル案を生成できませんでした。本文が短すぎる可能性があります。</div></div>`;
+    return;
+  }
+  const rows = titles.map((t,i)=>`<div class="title-card">
+      <span class="rank">案${i+1}</span><strong>${escapeHtml(t.text||"")}</strong>
+      <div class="reason" style="margin-top:6px;">根拠：${escapeHtml(t.basis||"")}／該当区分：${escapeHtml(t.priorityMatched||"")}</div>
+    </div>`).join("");
+  box.innerHTML = `<div class="result-block"><h3>タイトル案</h3>${rows}</div>`;
+}
+
+document.getElementById("runBtn").addEventListener("click", async ()=>{
+  const apiKey = document.getElementById("apiKey2").value.trim();
+  const model = document.getElementById("model2").value;
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  const text = inputText.value.trim();
+  const statusEl = document.getElementById("statusText");
+  const runBtn = document.getElementById("runBtn");
+  const resultsEl = document.getElementById("results");
+
+  resultsEl.innerHTML = "";
+  if(!apiKey){ statusEl.textContent = "APIキーを入力してください。"; return; }
+  if(!text){ statusEl.textContent = "本文を入力してください。"; return; }
+
+  runBtn.disabled = true;
+  statusEl.textContent = "チェック中…";
+  try{
+    const prompt = mode==="proof" ? buildProofPrompt(text) : buildTitlePrompt(text);
+    const data = await callGemini(apiKey, model, prompt);
+    if(mode==="proof") renderProofResults(data); else renderTitleResults(data);
+    statusEl.textContent = "完了";
+  }catch(err){
+    resultsEl.innerHTML = `<div class="result-block"><h3>エラー</h3><div class="raw-error">${escapeHtml(err.message||String(err))}</div></div>`;
+    statusEl.textContent = "エラーが発生しました";
+  }finally{
+    runBtn.disabled = false;
+  }
+});
+
+/* ============ アンケートチェックタブ ============ */
+function parseSurveyDump(raw){
+  const lines = raw.split(/\r?\n/).map(l=>l.trim())
+    .filter(l=>l.length>0 && l !== "アンケート結果");
+  const records = [];
+  let i = 0;
+  while(i < lines.length){
+    const question = lines[i]; i++;
+    const answerLines = [];
+    while(i < lines.length && lines[i] !== "掲載する" && lines[i] !== "掲載しない"){
+      answerLines.push(lines[i]); i++;
+    }
+    let published = null;
+    if(i < lines.length){
+      published = (lines[i] === "掲載する");
+      i++;
+    }
+    records.push({ question, answer: answerLines.join("\n"), published });
+  }
+  return records;
+}
+
+let lastParsedRecords = [];
+
+document.getElementById("parseBtn").addEventListener("click", ()=>{
+  const raw = document.getElementById("surveyInput").value;
+  const previewEl = document.getElementById("surveyParsePreview");
+  document.getElementById("surveyResults").innerHTML = "";
+  if(!raw.trim()){
+    previewEl.innerHTML = `<div class="hint">貼り付け欄が空です。</div>`;
+    document.getElementById("surveyRunBtn").disabled = true;
+    return;
+  }
+  const records = parseSurveyDump(raw);
+  lastParsedRecords = records;
+
+  const rows = records.map((r,idx)=>{
+    const answerCell = r.answer.length>0
+      ? escapeHtml(r.answer).replace(/\n/g,"<br>")
+      : `<span class="blank">（空欄）</span>`;
+    return `<tr><td>${idx+1}</td><td>${escapeHtml(r.question)}</td><td>${answerCell}</td></tr>`;
+  }).join("");
+
+  previewEl.innerHTML = `
+    <table class="parsed">
+      <thead><tr><th>#</th><th>質問</th><th>回答</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="parse-count">${records.length}件の項目に分割しました。内容が正しく分かれているか確認してから「② AIでチェック実行」を押してください。</div>
+  `;
+  document.getElementById("surveyRunBtn").disabled = records.length===0;
+});
+
+function buildSurveyPrompt(records){
+  const recordsJson = JSON.stringify(
+    records.map((r,i)=>({ index:i, question:r.question, answer:r.answer })),
+    null, 0
+  );
+  return `あなたは大学受験合格体験記サイトのアンケート回答チェック担当者です。以下のルールに基づき、各回答項目の問題点を指摘してください。
+
+# アンケートチェックのルール
+${RULES.surveyRules.map(s=>"・"+s).join("\n")}
+
+# コンテンツ名の表記統一（誤り→正しい表記）
+${RULES.contentNamePairs.map(p=>`${p[0]} → ${p[1]}`).join("\n")}
+
+# 用語の言い換え（誤り→正しい表記。ただし「GMARCH」はそのままでよい）
+${RULES.wordPairs.map(p=>`${p[0]} → ${p[1]}`).join("\n")}
+
+# NGの講師名（含まれていたら指摘する）
+${RULES.ngTeachers.join("、")}
+
+# 入力データ（index, question, answerの配列。同じquestionが複数回登場する場合はindexで区別すること）
+${recordsJson}
+
+# 出力形式（重要）
+- 必ずJSONのみを出力すること。前置き、説明文、コードブロックの記号は一切付けない。
+- 問題がない項目は出力に含めない（issuesは問題のある項目のみ）。
+- 空欄（answerが空文字）の項目は、削除すべき内容が残っているわけではないので、原則issuesに含めない。
+- スキーマ：
+{"issues":[{"index":該当するindex番号,"question":"質問文","category":"削除対象 | 表記統一 | 重複 | 矛盾 | 文体誤字","original":"該当する回答の原文（全体でよい）","suggested":"修正案（削除を提案する場合は空文字でよい）","reason":"指摘理由（1文）","actionOnPublish":"掲載するチェックを外すことを推奨する場合はtrue、修正すれば掲載継続でよい場合はfalseをbooleanで"}]}`;
+}
+function renderSurveyResults(data, records){
+  const box = document.getElementById("surveyResults");
+  const issues = Array.isArray(data.issues) ? data.issues : [];
+  if(issues.length===0){
+    box.innerHTML = `<div class="result-block"><h3>結果</h3><div class="empty-ok">ルールに明確に該当する問題は見つかりませんでした。目視での最終確認は必ず行ってください。</div></div>`;
+    return;
+  }
+  const rows = issues.map(it=>{
+    const warnType = it.actionOnPublish===true;
+    const fix = it.suggested && it.suggested.trim().length>0
+      ? `<span class="arrow">→</span><span class="fix">${escapeHtml(it.suggested)}</span>`
+      : `<span class="arrow">→</span><span class="fix">${warnType?"掲載するチェックを外す":"削除を検討"}</span>`;
+    return `<div class="issue ${warnType?"warn-type":""}">
+      <span class="cat">${escapeHtml(it.category||"指摘")}</span>
+      <div class="q">Q${(it.index!=null?it.index+1:"?")}：${escapeHtml(it.question||"")}</div>
+      <div><span class="orig">${escapeHtml(it.original||"")}</span>${fix}</div>
+      <div class="reason">${escapeHtml(it.reason||"")}</div>
+    </div>`;
+  }).join("");
+  box.innerHTML = `<div class="result-block"><h3>指摘事項（${issues.length}件）</h3>${rows}
+    <div class="hint">「掲載するチェックを外す」と表示された項目は、実際のチェックボックス状態を管理画面で確認したうえで操作してください（コピペからは判別できません）。</div>
+  </div>`;
+}
+
+document.getElementById("surveyRunBtn").addEventListener("click", async ()=>{
+  const apiKey = document.getElementById("apiKey1").value.trim();
+  const model = document.getElementById("model1").value;
+  const statusEl = document.getElementById("surveyStatus");
+  const runBtn = document.getElementById("surveyRunBtn");
+  const resultsEl = document.getElementById("surveyResults");
+
+  resultsEl.innerHTML = "";
+  if(!apiKey){ statusEl.textContent = "APIキーを入力してください。"; return; }
+  if(lastParsedRecords.length===0){ statusEl.textContent = "先に「①項目に分割してプレビュー」を実行してください。"; return; }
+
+  runBtn.disabled = true;
+  statusEl.textContent = "チェック中…";
+  try{
+    const prompt = buildSurveyPrompt(lastParsedRecords);
+    const data = await callGemini(apiKey, model, prompt);
+    renderSurveyResults(data, lastParsedRecords);
+    statusEl.textContent = "完了";
+  }catch(err){
+    resultsEl.innerHTML = `<div class="result-block"><h3>エラー</h3><div class="raw-error">${escapeHtml(err.message||String(err))}</div></div>`;
+    statusEl.textContent = "エラーが発生しました";
+  }finally{
+    runBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
