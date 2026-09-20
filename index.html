@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>体験記チェッカー</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="mark"></div>
+    <div>
+      <h1>体験記チェッカー</h1>
+      <div class="sub">一次チェック支援ツール（試作v2） ／ アンケート・本文を分けて校正</div>
+    </div>
+  </header>
+
+  <div class="info">
+    このツールは「AIの判断」と「機械的に100%確実なルール処理（ルールエンジン）」を分けて実行しています。
+    数字の全角/半角、NG講師名、コンテンツ名・用語の表記統一は、AIの出力精度に関わらずルールエンジンが必ず検出・補正します。
+    各指摘には「ルールエンジン（確実）」または「AI判断」のラベルが付きます。
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="survey">アンケートチェック</button>
+    <button class="tab-btn" data-tab="text">本文チェック</button>
+    <button class="tab-btn" data-tab="image">画像編集</button>
+  </div>
+
+  <!-- ===================== アンケートタブ ===================== -->
+  <div class="tab-panel active" id="tab-survey">
+    <div class="grid">
+      <div class="panel">
+        <h2>設定</h2>
+        <label for="apiKey1">Gemini APIキー</label>
+        <input type="password" id="apiKey1" placeholder="AIza...">
+        <div class="hint">2つのタブでAPIキーは共通です。このページを閉じると消えます（保存されません）。</div>
+
+        <label for="model1">モデル</label>
+        <select id="model1">
+          <option value="gemini-3.6-flash" selected>gemini-3.6-flash（標準・推奨）</option>
+          <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite（高速・大量処理向け）</option>
+          <option value="gemini-3.1-pro">gemini-3.1-pro（高精度・長文脈・低レート）</option>
+        </select>
+        <div class="hint">404エラーが出た場合はエラー本文に表示される推奨モデル名にvalue値を書き換えてください。</div>
+
+        <div class="note">
+          「掲載する」はコピペした時点でON/OFFの区別がつきません（チェックボックスの見た目は文字として残らないため）。このツールは「掲載する」を項目の区切りとしてのみ使い、実際にチェックを外すかどうかの最終操作は管理画面で行ってください。
+        </div>
+        <div class="warn">
+          生徒名・高校名などが含まれる場合、無料枠のデータはGoogle側のモデル改善に利用される場合があります。個人が特定できる情報は伏せてから貼り付けることを推奨します。
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>アンケート結果を貼り付け</h2>
+        <div class="hint" style="margin-bottom:8px;">管理画面の「アンケート結果」欄をそのままコピーして貼り付けてください（見出し行「アンケート結果」は自動的に無視されます）。</div>
+        <textarea id="surveyInput" placeholder="アンケート結果&#10;入学学年&#10;高1&#10;掲載する&#10;..."></textarea>
+
+        <div class="runbar">
+          <button class="run secondary" id="parseBtn">① 項目に分割してプレビュー</button>
+          <button class="run" id="surveyRunBtn" disabled>② AIでチェック実行</button>
+          <span class="status" id="surveyStatus"></span>
+        </div>
+
+        <div id="surveyParsePreview"></div>
+        <div id="surveyResults"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 本文タブ ===================== -->
+  <div class="tab-panel" id="tab-text">
+    <div class="grid">
+      <div class="panel">
+        <h2>設定</h2>
+        <label for="apiKey2">Gemini APIキー</label>
+        <input type="password" id="apiKey2" placeholder="AIza...">
+        <div class="hint">2つのタブでAPIキーは共通です。</div>
+
+        <label for="model2">モデル</label>
+        <select id="model2">
+          <option value="gemini-3.6-flash" selected>gemini-3.6-flash（標準・推奨）</option>
+          <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite（高速・大量処理向け）</option>
+          <option value="gemini-3.1-pro">gemini-3.1-pro（高精度・長文脈・低レート）</option>
+        </select>
+
+        <label>チェック内容</label>
+        <div class="radio-row">
+          <label><input type="radio" name="mode" value="proof" checked> 本文校正チェック</label>
+          <label><input type="radio" name="mode" value="title"> タイトル案の生成</label>
+        </div>
+
+        <div class="warn">
+          生徒名等を含む場合は無料枠へ送信する前に伏せ字にすることを推奨します。
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>本文入力</h2>
+        <textarea id="inputText" placeholder="体験記本文を貼り付けてください"></textarea>
+        <div class="countbar" id="charCount">0文字</div>
+        <div class="runbar">
+          <button class="run" id="runBtn">チェック実行</button>
+          <span class="status" id="statusText"></span>
+        </div>
+        <div id="results"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 画像編集タブ ===================== -->
+  <div class="tab-panel" id="tab-image">
+    <div class="grid">
+      <div class="panel">
+        <h2>設定</h2>
+        <label for="recordUrl">元データのURL（末尾5桁からファイル名を自動生成）</label>
+        <input type="text" id="recordUrl" placeholder="https://m24portal.toshin.com/.../edit/12345">
+        <div class="hint">小画像は末尾+s、大画像は末尾+l のファイル名で書き出します。</div>
+
+        <label for="imgFile">元画像を選択</label>
+        <input type="file" id="imgFile" accept="image/*">
+
+        <label>作成する画像</label>
+        <div class="radio-row">
+          <label><input type="radio" name="imgKind" value="small" checked> 小画像（正方形・50KB前後）</label>
+          <label><input type="radio" name="imgKind" value="large"> 大画像（3:2・100KB前後）</label>
+        </div>
+
+        <label for="zoomSlider">拡大率</label>
+        <input type="range" id="zoomSlider" min="20" max="300" value="100">
+        <div class="hint">画面をドラッグして位置調整、ホイールまたはこのスライダーで拡大縮小できます。赤い点線は頭上の余白の目安です。</div>
+
+        <div class="note">
+          背景ぼかしは初回クリック時のみ数MBのモデルを読み込みます（数十秒かかる場合あり／オフライン環境では利用できません）。クロップ・リサイズ・ファイル名生成はモデル読み込み不要でその場で動作します。
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>クロップ・プレビュー</h2>
+        <div class="crop-stage">
+          <canvas id="cropCanvas" width="480" height="480" style="max-width:100%;border:1px solid var(--line);touch-action:none;cursor:grab;background:#fff;"></canvas>
+          <div class="crop-guide" aria-hidden="true"></div>
+        </div>
+
+        <div class="runbar">
+          <button class="run secondary" id="blurBtn">背景をぼかす（任意）</button>
+          <span class="status" id="blurStatus"></span>
+        </div>
+        <div class="runbar" id="brushControls" style="display:none;">
+          <label style="margin:0;">ブラシ：</label>
+          <select id="brushMode">
+            <option value="reveal-sharp">くっきり戻す（マスクの追加）</option>
+            <option value="restore-blur">ぼかしを戻す（マスクの削除）</option>
+          </select>
+          <label style="margin:0;">サイズ：</label>
+          <input type="range" id="brushSize" min="5" max="80" value="25">
+        </div>
+
+        <div class="runbar">
+          <button class="run" id="exportBtn">この内容で書き出し（自動で目標サイズに調整）</button>
+          <span class="status" id="exportStatus"></span>
+        </div>
+        <div id="exportResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="qa-panel" id="qaPanel"></div>
+
+</div>
+
+<script src="js/rules.js"></script>
+<script src="js/rule-engine.js"></script>
+<script src="js/gemini-client.js"></script>
+<script src="js/app.js"></script>
+<script src="js/image-editor.js"></script>
+</body>
+</html>
